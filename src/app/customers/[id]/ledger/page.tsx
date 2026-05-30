@@ -67,19 +67,18 @@ function exportExcel() {
     'Ngày': e.entry_date,
     'Số HĐ': e.invoices?.invoice_number || '',
     'Diễn giải': e.description,
-    'Tài khoản Nợ': e.debit_account,
-    'Tài khoản Có': e.credit_account,
+    'TK Nợ': e.debit_account,
+    'TK Có': e.credit_account,
     'Số tiền': e.amount,
   }))
 
-  // Thêm dòng tổng cộng
   data.push({
-    'STT': 0,
+    'STT': '' as any,
     'Ngày': '',
     'Số HĐ': '',
     'Diễn giải': 'TỔNG CỘNG',
-    'Tài khoản Nợ': '',
-    'Tài khoản Có': '',
+    'TK Nợ': '',
+    'TK Có': '',
     'Số tiền': totalDebit,
   })
 
@@ -92,11 +91,20 @@ function exportExcel() {
     { wch: 5 },   // STT
     { wch: 12 },  // Ngày
     { wch: 15 },  // Số HĐ
-    { wch: 50 },  // Diễn giải
-    { wch: 15 },  // TK Nợ
-    { wch: 15 },  // TK Có
-    { wch: 20 },  // Số tiền
+    { wch: 60 },  // Diễn giải
+    { wch: 10 },  // TK Nợ
+    { wch: 10 },  // TK Có
+    { wch: 18 },  // Số tiền
   ]
+
+  // Format số tiền có dấu phẩy
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+  for (let row = 1; row <= range.e.r; row++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: row, c: 6 })]
+    if (cell && typeof cell.v === 'number') {
+      cell.z = '#,##0'
+    }
+  }
 
   XLSX.writeFile(wb, `So_nhat_ky_${customerName}_${selectedPeriod}.xlsx`)
 }

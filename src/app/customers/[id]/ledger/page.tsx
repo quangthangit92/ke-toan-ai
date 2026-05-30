@@ -1,5 +1,5 @@
 'use client'
-
+import * as XLSX from 'xlsx'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -61,7 +61,45 @@ export default function LedgerPage() {
 
   const formatMoney = (n: number) => new Intl.NumberFormat('vi-VN').format(n)
   const totalDebit = entries.reduce((sum, e) => sum + e.amount, 0)
+function exportExcel() {
+  const data = entries.map((e, i) => ({
+    'STT': i + 1,
+    'Ngày': e.entry_date,
+    'Số HĐ': e.invoices?.invoice_number || '',
+    'Diễn giải': e.description,
+    'Tài khoản Nợ': e.debit_account,
+    'Tài khoản Có': e.credit_account,
+    'Số tiền': e.amount,
+  }))
 
+  // Thêm dòng tổng cộng
+  data.push({
+    'STT': 0,
+    'Ngày': '',
+    'Số HĐ': '',
+    'Diễn giải': 'TỔNG CỘNG',
+    'Tài khoản Nợ': '',
+    'Tài khoản Có': '',
+    'Số tiền': totalDebit,
+  })
+
+  const ws = XLSX.utils.json_to_sheet(data)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'So nhat ky')
+
+  // Độ rộng cột
+  ws['!cols'] = [
+    { wch: 5 },   // STT
+    { wch: 12 },  // Ngày
+    { wch: 15 },  // Số HĐ
+    { wch: 50 },  // Diễn giải
+    { wch: 15 },  // TK Nợ
+    { wch: 15 },  // TK Có
+    { wch: 20 },  // Số tiền
+  ]
+
+  XLSX.writeFile(wb, `So_nhat_ky_${customerName}_${selectedPeriod}.xlsx`)
+}
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-5xl mx-auto">
@@ -88,9 +126,18 @@ export default function LedgerPage() {
               <option key={p.id} value={p.id}>{p.period}</option>
             ))}
           </select>
-          <div className="ml-auto text-sm text-gray-500">
-            Tổng phát sinh: <span className="font-bold text-blue-700">{formatMoney(totalDebit)} đ</span>
-          </div>
+          <div className="ml-auto flex items-center gap-4">
+  <span className="text-sm text-gray-500">
+    Tổng phát sinh: <span className="font-bold text-gray-900">{formatMoney(totalDebit)} đ</span>
+  </span>
+  <button
+    onClick={exportExcel}
+    disabled={entries.length === 0}
+    className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+  >
+    ⬇ Tải Excel
+  </button>
+</div>
         </div>
 
         {/* Sổ nhật ký */}
